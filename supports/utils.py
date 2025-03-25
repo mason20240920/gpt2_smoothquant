@@ -21,7 +21,7 @@ from supports.constant import TRAIN_DATA_PATH
 
 def collect_ime_gpt2_act_scales(model: IMEGPT2LMHeadModel,
                                 dataset: TensorDataset,
-                                num_samples: int = 512,
+                                num_samples: int = 10,
                                 seq_len: int = 16):
     """
     拦截输入的激活函数值
@@ -63,23 +63,6 @@ def collect_ime_gpt2_act_scales(model: IMEGPT2LMHeadModel,
 
     for h in hooks:
         h.remove()
-
-    # try:
-    #     sample_count: int = 0
-    #     for batch in dataloader:
-    #         # print(*batch)
-    #         if sample_count >= num_samples:
-    #             break
-    #
-    #         with torch.no_grad():
-    #             outputs: tuple = model(*batch)
-    #
-    #         sample_count += batch.size(0)
-    #
-    # finally:
-    #     # 清理所有钩子
-    #     for hook in hooks:
-    #         hook.remove()
 
     return act_scales
 

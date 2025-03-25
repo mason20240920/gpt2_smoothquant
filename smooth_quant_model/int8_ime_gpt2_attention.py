@@ -46,6 +46,10 @@ class Int8IMEGPT2Attention(nn.Module):
 
     attn_weights_zero_point: torch.int8
 
+    output_zp: torch.int8
+
+    output_scale: float
+
     def __init__(self,
                  config: GPT2Config):
         super(Int8IMEGPT2Attention, self).__init__()
@@ -134,6 +138,8 @@ class Int8IMEGPT2Attention(nn.Module):
         int8_module.proj_input_zero_point = out_input_zp
         int8_module.attn_weights_scale = attn_weight_input_scale
         int8_module.attn_weights_zero_point = attn_weight_input_zp
+        int8_module.output_zp = output_zp
+        int8_module.output_scale = output_scale
         # Fuse the scaling into the q_proj output scale
         int8_module.c_attn = W8A8B32O8LinearForMac.from_float(
             module=module.c_attn,
@@ -142,6 +148,7 @@ class Int8IMEGPT2Attention(nn.Module):
             input_zp=input_zp,
             output_zp=output_zp
         )
+        # int8_module.c_proj = module.c_proj
         int8_module.c_proj = W8A8BFP32OFP32LinearForMac.from_float(
             module=module.c_proj,
             input_scale=out_input_scale,
@@ -184,6 +191,16 @@ class Int8IMEGPT2Attention(nn.Module):
         query_states = query_states.view(shape_q).transpose(1, 2)
         key_states = key_states.view(shape_kv).transpose(1, 2)
         value_states = value_states.view(shape_kv).transpose(1, 2)
+        # query_states = dequantize_tensor(input_tensor=query_states, scale=self.q_output_scale, zero_point=self.q_output_zero_point)
+        # value_states = dequantize_tensor(input_tensor=value_states, scale=self.v_output_scale, zero_point=self.v_output_zero_point)
+        # key_states = dequantize_tensor(input_tensor=key_states, scale=self.k_output_scale, zero_point=self.k_output_zero_point)
+
+        query_states = dequantize_tensor(input_tensor=query_states, scale=self.output_scale, zero_point=self.output_zp)
+        query_states = quantize_tensor(input_tensor=query_states, scale=self.output_scale, zero_point=self.q_output_zero_point)
+        value_states = dequantize_tensor(input_tensor=value_states, scale=self.output_scale, zero_point=self.output_zp)
+        value_states = quantize_tensor(input_tensor=value_states, scale=self.v_output_scale, zero_point=self.v_output_zero_point)
+        key_states = dequantize_tensor(input_tensor=key_states, scale=self.output_scale, zero_point=self.output_zp)
+        key_states = quantize_tensor(input_tensor=key_states, scale=self.k_output_scale, zero_point=self.k_output_zero_point)
 
         # ============================QKV的Self-Attention计算============================
         attn_weights: torch.Tensor = self.qk_bmm(query_states, key_states.transpose(-1, -2))
@@ -199,7 +216,10 @@ class Int8IMEGPT2Attention(nn.Module):
         attn_weights = quantize_tensor(input_tensor=attn_weights,
                                        scale=self.attn_weights_scale,
                                        zero_point=self.attn_weights_zero_point)
+        # attn_weights = dequantize_tensor(input_tensor=attn_weights, scale=self.attn_weights_scale, zero_point=self.attn_weights_zero_point)
         attn_output: torch.Tensor = self.pv_bmm(attn_weights, value_states)
+        # attn_output = dequantize_tensor(input_tensor=attn_output, scale=self.proj_input_scale, zero_point=self.proj_input_zero_point)
+        # attn_output: torch.Tensor = torch.matmul(attn_weights, value_states)
 
         attn_output = attn_output.transpose(1, 2)
         # ==============================================================================

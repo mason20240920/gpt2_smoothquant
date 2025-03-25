@@ -56,7 +56,7 @@ class BMMS8TS8NS8T(torch.nn.Module):
         if not torch.is_tensor(o_zp):
             o_zp: torch.Tensor = torch.tensor(o_zp)
         if not torch.is_tensor(o_scale):
-            o_scale: torch.Tensor = torch.tensor(a_scale)
+            o_scale: torch.Tensor = torch.tensor(o_scale)
         bmm_module.alpha = alpha_scale
         bmm_module.a_zp = a_zp
         bmm_module.b_zp = b_zp

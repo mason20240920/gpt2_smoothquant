@@ -111,7 +111,7 @@ def smooth_ime_gpt2(model: IMEGPT2LMHeadModel,
 def get_static_decoder_layer_scales(
         model: IMEGPT2LMHeadModel,
         dataset: TensorDataset,
-        num_samples:int = 512,
+        num_samples:int = 10,
         seq_len: int = 16):
     """
     获取解码器层的激活值缩放因子, 用于量化准备
@@ -149,7 +149,18 @@ def get_static_decoder_layer_scales(
         # 先判断是不是注意力头
 
         if name.endswith("attn.c_attn"):
-            sub_y_output = y.split(m.in_features, dim=2)
+            # 进行QKV形状变化
+            query_states, key_states, value_states = y.split(m.in_features, dim=2)
+            head_dim = m.in_features // model.config.n_head
+            shape_q = (*query_states.shape[:-1], -1, head_dim)  # [batch_size, seq_len, num_heads, head_dim]
+            shape_kv = (*key_states.shape[:-1], -1, head_dim)  # [batch_size, seq_len, num_heads, head_dim]
+
+            query_states = query_states.view(shape_q).transpose(1, 2)
+            key_states = key_states.view(shape_kv).transpose(1, 2)
+            value_states = value_states.view(shape_kv).transpose(1, 2)
+
+            sub_y_output = [query_states, key_states, value_states]
+
             prefix_name: str = name.replace("c_attn", "")
             sub_names: List[str] = [f"{prefix_name}q_proj",
                                     f"{prefix_name}k_proj",
@@ -204,7 +215,7 @@ def get_static_decoder_layer_scales(
             hooks.append(m.register_forward_hook(partial(stat_io_hook, name=name)))
 
     print("Collecting activation scales...")
-    pbar = tqdm(range(1))
+    pbar = tqdm(range(num_samples))
 
     # 遍历样本收集激活值统计信息
     for i in pbar:
