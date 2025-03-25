@@ -84,8 +84,11 @@ class W8A8B32O8LinearForMac(nn.Module):
 
         adjust_a: torch.Tensor = input_q - self.zero_point
 
+        adjust_a_float = adjust_a.float()
+        weight_q_float = weight_q.float()
+
         # 2. 进行矩阵计算推理
-        gemm_o: torch.Tensor = ((torch.matmul(adjust_a, weight_q) + self.bias) * self.gemm_scales) / self.out_scale
+        gemm_o: torch.Tensor = ((torch.matmul(adjust_a_float,  weight_q_float) + self.bias) * self.gemm_scales) / self.out_scale
 
         # origin_gemm_o: torch.Tensor = (torch.matmul(adjust_a, weight_q) + self.bias)
 
@@ -161,8 +164,12 @@ class W8A8BFP32OFP32LinearForMac(nn.Module):
 
         adjust_a: torch.Tensor = input_q - self.zero_point
 
+
+        adjust_a_float = adjust_a.float()
+        weight_q_float = weight_q.float()
+
         # 2. 进行矩阵计算推理
-        gemm_o: torch.Tensor = ((torch.matmul(adjust_a, weight_q) + self.bias) * self.gemm_scales).to(torch.float32)
+        gemm_o: torch.Tensor = ((torch.matmul(adjust_a_float, weight_q_float) + self.bias) * self.gemm_scales)
         return gemm_o
 
 

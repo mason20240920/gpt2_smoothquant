@@ -111,6 +111,8 @@ def channel_wise_symmetric_quantize(weight_tensor: torch.Tensor,
     :param channel_dim:
     :return:
     """
+    # 判断是什么设备
+    device: torch.device = weight_tensor.device
     # 1. 计算量化参数 (对称int8范围为[-127, 127])
     offset = 1 << (quant_bit - 1)
     clip_max = offset - 1
@@ -120,8 +122,8 @@ def channel_wise_symmetric_quantize(weight_tensor: torch.Tensor,
     num_channels: int = weight_tensor.shape[channel_dim]
 
     # 3. 初始化缩放因子和量化后的张量
-    q_weight_tensor: torch.Tensor = torch.zeros_like(weight_tensor)
-    scale = torch.zeros(num_channels, dtype=torch.float32)
+    q_weight_tensor: torch.Tensor = torch.zeros_like(weight_tensor).to(device=device)
+    scale = torch.zeros(num_channels, dtype=torch.float32).to(device=device)
 
     # 4. 对每个通道单独进行量化
     for c in range(num_channels):

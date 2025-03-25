@@ -75,8 +75,10 @@ class BMMS8TS8NS8T(torch.nn.Module):
         # a: [B, M, K] int8
         # b: [B, N, K] int8
         # return: [B, M, N] int32
-        quant_o: torch.Tensor = torch.matmul((x.to(torch.int32) - self.a_zp),
-                                             (y.to(torch.int32) - self.b_zp)) * self.alpha / self.o_alpha
+        input_a: torch.Tensor = (x.to(torch.int32) - self.a_zp).float()
+        input_b: torch.Tensor = (y.to(torch.int32) - self.b_zp).float()
+        quant_o: torch.Tensor = torch.matmul(input_a,
+                                             input_b) * self.alpha / self.o_alpha
 
         output: torch.Tensor = torch.clamp(quant_o + self.out_zp, -128, 127).to(torch.int8)
 
@@ -130,8 +132,9 @@ class BMMS8TS8NF32T(torch.nn.Module):
         # a: [B, M, K] int8
         # b: [B, N, K] int8
         # return: [B, M, N] float32
-        quant_o: torch.Tensor = torch.matmul((x.to(torch.int32) - self.a_zp),
-                                             (y.to(torch.int32) - self.b_zp)).to(
-            torch.float32) * self.alpha
+        input_a: torch.Tensor = (x.to(torch.int32) - self.a_zp).float()
+        input_b: torch.Tensor = (y.to(torch.int32) - self.b_zp).float()
+        quant_o: torch.Tensor = torch.matmul(input_a,
+                                             input_b) * self.alpha
 
         return quant_o
