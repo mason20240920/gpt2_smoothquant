@@ -25,12 +25,12 @@ if __name__ == '__main__':
         device = torch.device('mps')
     else:
         device = torch.device('cpu')
-    purpose: str = "quant"
+    purpose: str = "test"
     if purpose == "scales":
         ime_gpt2_path: str = os.path.join("/Users/mason/Desktop/Desktop/PythonProjects/ime_gpt_2/output", 'model_7000')
         model: IMEGPT2LMHeadModel = IMEGPT2LMHeadModel.from_pretrained(ime_gpt2_path)
         find_best_scales(model=model)
-    else:
+    elif purpose == "quant":
         act_scales = torch.load("./act_scales/ime_gpt2.pt")
         ime_gpt2_path: str = os.path.join("./gpt2_models", 'model_901')
         model: IMEGPT2LMHeadModel = IMEGPT2LMHeadModel.from_pretrained(ime_gpt2_path).to(device=device)
@@ -42,6 +42,12 @@ if __name__ == '__main__':
                                                                                config=model.config,
                                                                                intermediate_size=3072,
                                                                                decoder_layer_scales=decoder_layer_scales).to(device=device)
+        # 保存完整模型
+        torch.save(int8_model, 'int8_model.pt')
+    else:
+        ime_gpt2_path: str = os.path.join("./gpt2_models", 'model_901')
+        model: IMEGPT2LMHeadModel = IMEGPT2LMHeadModel.from_pretrained(ime_gpt2_path).to(device=device)
+        int8_model: Int8ImeGPT2LMHeadModel = torch.load("./int8_model.pt", weights_only=False).to(device=device)
         input_ids: torch.LongTensor = torch.tensor([0, 8, 9, 10], dtype=torch.long).to(device=device)
         # 5. 进行推理
         output = model(input_ids)
