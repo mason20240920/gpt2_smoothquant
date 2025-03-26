@@ -21,7 +21,7 @@ from supports.constant import TRAIN_DATA_PATH
 
 def collect_ime_gpt2_act_scales(model: IMEGPT2LMHeadModel,
                                 dataset: TensorDataset,
-                                num_samples: int = 10,
+                                num_samples: int = 2,
                                 seq_len: int = 16):
     """
     拦截输入的激活函数值

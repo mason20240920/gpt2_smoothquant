@@ -160,7 +160,7 @@ def channel_wise_symmetric_quantize(weight_tensor: torch.Tensor,
 def quant_bias(input_tensor: torch.Tensor,
                input_scale: float,
                weight_scale: torch.Tensor,
-               quant_bit: int = 8) -> torch.Tensor:
+               quant_bit: int = 32) -> torch.Tensor:
     """
     量化偏置值
     :param input_tensor:

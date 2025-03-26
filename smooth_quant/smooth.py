@@ -111,7 +111,7 @@ def smooth_ime_gpt2(model: IMEGPT2LMHeadModel,
 def get_static_decoder_layer_scales(
         model: IMEGPT2LMHeadModel,
         dataset: TensorDataset,
-        num_samples:int = 10,
+        num_samples:int = 2,
         seq_len: int = 16):
     """
     获取解码器层的激活值缩放因子, 用于量化准备
