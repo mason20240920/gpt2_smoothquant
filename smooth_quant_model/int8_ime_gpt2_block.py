@@ -57,6 +57,10 @@ class Int8IMEGPT2Block(nn.Module):
             out_input_zp: torch.int8,
             fc1_input_scale: float,
             fc1_input_zp: torch.int8,
+            fc1_output_scale: float,
+            fc1_output_zp: torch.int8,
+            fc2_input_scale: float,
+            fc2_input_zp: torch.int8,
             fc2_output_scale: float,
             fc2_output_zp: torch.int8):
         int8_module: Int8IMEGPT2Block = Int8IMEGPT2Block(config=config)
@@ -86,8 +90,12 @@ class Int8IMEGPT2Block(nn.Module):
             intermediate_size=intermediate_size,
             c_fc_input_scale=fc1_input_scale,
             c_fc_input_zp=fc1_input_zp,
-            c_proj_input_scale=fc2_output_scale,
-            c_proj_input_zp=fc2_output_zp,
+            c_gelu_input_scale=fc1_output_scale,
+            c_gelu_input_zp=fc1_output_zp,
+            c_gelu_output_scale=fc2_input_scale,
+            c_gelu_output_zp=fc2_input_zp,
+            c_proj_output_scale=fc2_output_scale,
+            c_proj_output_zp=fc2_output_zp,
         )
         return int8_module
 

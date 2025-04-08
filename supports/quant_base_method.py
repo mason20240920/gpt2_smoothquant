@@ -7,8 +7,9 @@
 @Date    : 2025/3/21 09:46
 @Desc    : 基本的量化方法
 """
+import numpy as np
 import torch
-from typing import Tuple
+from typing import Tuple, Dict
 
 from torch.onnx.symbolic_opset11 import clamp
 
@@ -69,6 +70,24 @@ def quant_per_tensor_asymmetric_int8(input_tensor: torch.Tensor):
     quantized_tensor = input_tensor.to(torch.int8)
 
     return quantized_tensor, scale, zero_point
+
+def quant_per_scalr_asymmetric_int8(input_val: float, scale: float, zero_point: torch.int8) -> torch.int8:
+    """
+    非对称量化整个标量 (有符号int8版本)
+    :param input_val: 输入张量
+    :return: 返回量化后的张量、scale和zero point
+    """
+    offset = 1 << (8 - 1)
+    clip_max = offset - 1
+    clip_min = -offset
+
+    # 量化公式
+    output = torch.round(input_val / scale + zero_point)
+
+    # 裁剪到有效范围
+    output = torch.clamp(output, clip_min, clip_max)
+
+    return output.to(torch.int8)
 
 @torch.no_grad()
 def quant_per_tensor_asymmetric_int8_with_val(input_tensor: torch.Tensor,
@@ -202,6 +221,15 @@ def dequantize_gemm_output(q_c: torch.Tensor, input_scale: float, weight_scale: 
 def dequantize_asymmetric_quantize(q_A: torch.Tensor, scale: float, zero_point: float) -> torch.Tensor:
     return (q_A.to(torch.float32) - zero_point) * scale
 
+def dequantize_scalar_asymmetric_quantize(q_val: torch.int8, scale: float, zero_point: float) -> torch.Tensor:
+    """
+    反量化一个标量
+    :param q_val:
+    :param scale:
+    :param zero_point:
+    :return:
+    """
+    return (torch.tensor(q_val).float() - zero_point) * scale
 
 @torch.no_grad()
 def quantize_tensor(input_tensor: torch.Tensor,
@@ -234,5 +262,39 @@ def dequantize_tensor(input_tensor: torch.Tensor,
                       zero_point: torch.int8) -> torch.Tensor:
     return (input_tensor.float() - zero_point) * scale
 
+def map_act_to_255_lst(act_func, scale: float, zp: torch.int8, o_scale: float, o_zp: torch.int8) -> Dict[int, int]:
+    """
+    映射数据位255
+    :param o_zp:
+    :param o_scale:
+    :param act_func:
+    :param scale:
+    :param zp:
+    :return:
+    """
+    ret: Dict[int, int] = {}
+    for i in range(-128, 128):
+        float_val: float = dequantize_scalar_asymmetric_quantize(q_val=i, scale=scale, zero_point=zp)
+        tmp_val: float = act_func(float_val)
+        int_val = quant_per_scalr_asymmetric_int8(input_val=tmp_val, scale=o_scale, zero_point=o_zp)
+        ret[i] = int_val.item()
+    return ret
 
+def map_tensor_values(tensor: torch.Tensor, mapping: Dict[int, int], default_value: int = 0) -> torch.Tensor:
+    # 获取原始tensor的device和dtype
+    device = tensor.device
+    dtype = tensor.dtype
 
+    # 将tensor转到CPU并获取numpy数组
+    cpu_tensor = tensor.cpu()
+    values = cpu_tensor.numpy()
+
+    # 创建vectorize函数进行映射
+    def map_value(x):
+        return mapping.get(int(x), default_value)
+
+    vectorized_map = np.vectorize(map_value)
+    mapped_values = vectorized_map(values)
+
+    # 转回tensor并保持原始设备和数据类型
+    return torch.tensor(mapped_values, dtype=dtype, device=device)

@@ -48,7 +48,7 @@ if __name__ == '__main__':
         ime_gpt2_path: str = os.path.join("./gpt2_models", 'model_901')
         model: IMEGPT2LMHeadModel = IMEGPT2LMHeadModel.from_pretrained(ime_gpt2_path).to(device=device)
         int8_model: Int8ImeGPT2LMHeadModel = torch.load("./int8_model.pt", weights_only=False).to(device=device)
-        input_ids: torch.LongTensor = torch.tensor([0, 101, 139], dtype=torch.long).to(device=device)
+        input_ids: torch.LongTensor = torch.tensor([0, 1, 2, 3], dtype=torch.long).to(device=device)
         # 5. 进行推理
         output = model(input_ids)
         int8_output = int8_model(input_ids)

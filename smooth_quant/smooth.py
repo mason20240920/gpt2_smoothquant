@@ -103,8 +103,10 @@ def smooth_ime_gpt2(model: IMEGPT2LMHeadModel,
             fc1: nn.Linear = module.mlp.c_fc
             fc1_input_scales: torch.Tensor = scales[name + ".mlp.c_fc"]
             smooth_ln_fcs(ln=ffn_ln, fcs=[fc1], act_scales=fc1_input_scales, alpha=alpha)
-        # else:
-        #     raise NotADirectoryError("Module '{}' not found.".format(name))
+            #
+            # fc2: nn.Linear = module.mlp.c_proj
+            # fc2_input_scales: torch.Tensor = scales[name + ".mlp.c_proj"]
+            # smooth_ln_fcs(ln=ffn_ln, fcs=[fc2], act_scales=fc2_input_scales, alpha=alpha)
 
 
 @torch.no_grad()
@@ -273,9 +275,10 @@ def get_static_decoder_layer_scales(
         fc1_name = f"transformer.h.{idx}.mlp.c_fc"
         fc2_name = f"transformer.h.{idx}.mlp.c_proj"
         scale_dict["fc1_input_scale"], scale_dict["fc1_input_zp"] = compute_scale_zp(fc1_name, "input")
-        scale_dict["fc2_output_scale"], scale_dict["fc2_output_zp"] = compute_scale_zp(fc2_name, "input")
+        scale_dict["fc1_output_scale"], scale_dict["fc1_output_zp"] = compute_scale_zp(fc1_name, "output")
+        scale_dict["fc2_input_scale"], scale_dict["fc2_input_zp"] = compute_scale_zp(fc2_name, "input")
+        scale_dict["fc2_output_scale"], scale_dict["fc2_output_zp"] = compute_scale_zp(fc2_name, "output")
 
-        decoder_layer_scales.append(scale_dict)
         decoder_layer_scales.append(scale_dict)
 
     # # 恢复原始的 torch.matmul

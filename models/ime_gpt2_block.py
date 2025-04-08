@@ -9,6 +9,7 @@
 """
 from typing import Optional, Tuple
 
+import numpy as np
 import torch
 from torch import nn
 from transformers import GPT2Config
@@ -65,6 +66,7 @@ class IMEGPT2Block(nn.Module):
         hidden_states = attn_output + residual
 
         residual = hidden_states
+        np.save("mlp_input.npy", hidden_states.detach().cpu().numpy())
         hidden_states = self.ln_2(hidden_states)
         feed_forward_hidden_states = self.mlp(hidden_states)
         # 归一化

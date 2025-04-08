@@ -10,6 +10,7 @@
 import functools
 from typing import Dict, List
 
+import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
@@ -36,9 +37,9 @@ def collect_ime_gpt2_act_scales(model: IMEGPT2LMHeadModel,
 
     def stat_tensor(tensor_name: str,
                     tensor_data: torch.Tensor):
-        hidden_dim: int = tensor_data.shape[-1]
-        tensor_data = tensor_data.view(-1, hidden_dim).abs().detach()
-        comming_max = torch.max(tensor_data, dim=0)[0].float().cpu()
+        hidden_dim: int = tensor_data.shape[-1] # 隐藏层大小
+        tensor_data = tensor_data.view(-1, hidden_dim).abs().detach() # 隐藏层绝对值的大小
+        comming_max = torch.max(tensor_data, dim=0)[0].float().cpu() # 获取最大值
         if tensor_name in act_scales:
             act_scales[tensor_name] = torch.max(act_scales[tensor_name], comming_max)
         else:
